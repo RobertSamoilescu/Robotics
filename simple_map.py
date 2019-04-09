@@ -31,6 +31,7 @@ class SimpleMap():
             self.dnorthing = self.northing - ref_globals[0]
             self.deasting = self.easting - ref_globals[1]
 
+
     def _read_json(self):
         # get data from json
         with open(self.json) as f:
@@ -74,7 +75,7 @@ class SimpleMap():
             [np.cos(rad_course), -np.sin(rad_course), 0], 
             [np.sin(rad_course), np.cos(rad_course), 0],
             [0, 0, 1]
-            ])
+        ])
         return R
 
     def _get_translation_matrix(self, position):
@@ -90,15 +91,14 @@ class SimpleMap():
         """
         ret, frame = self.center_capture.read()
         dt = 1. / self.center_capture.get(cv2.CAP_PROP_FPS)
-
         if not ret:
-            return None, np.array([])
+            return None, np.array([]), np.array([])
 
         # for the first frame return
         if self.frame_index == 0:
-            self.prev_course = self.locations[self.frame_index]['course']
+            self.prev_course = self.locations[0]['course']
             self.frame_index += 1
-            return frame, np.array([0, 0, 1])
+            return frame, np.array([0, 0]), np.array([0, 0])
 
         # read course and speed for previous frame
         location = self._get_closest_location(1000 * dt * (self.frame_index - 1) + self.locations[0]['timestamp'])
@@ -111,7 +111,11 @@ class SimpleMap():
 
         # compute position from course, speed, dt
         position = self._get_position(rel_course, speed, dt)
-        ret = (frame, np.dot(self.T, position))
+        real_position = np.array([
+            location['easting'] - self.locations[0]['easting'], 
+            location['northing'] - self.locations[0]['northing']
+        ])
+        ret = (frame, np.dot(self.T, position)[:-1], real_position)
 
         # increase the frame index
         self.frame_index += 1
@@ -124,18 +128,17 @@ class SimpleMap():
         return ret 
 
     def get_route(self):
-        frame, position = self._next_image_position()
+        frame, position, real_position = self._next_image_position()
         x = []; y = []
+        x_real = []; y_real = []
+        frames = []
 
         while position.size > 0:
-            x.append(position[0] + self.deasting)
-            y.append(position[1] + self.dnorthing)
-            frame, position = self._next_image_position()
-    
-            ## VISUAL        
+            # # VISUAL        
             # import matplotlib.pyplot as plt
             # plt.clf()
             # plt.scatter(x, y)
+            # plt.axis('equal')
             # plt.draw()
             # plt.pause(0.001)
 
@@ -143,18 +146,24 @@ class SimpleMap():
             # cv2.imshow("FRAME", frame)
             # cv2.waitKey(33)
 
-
-        return x, y
+            x.append(position[0] + self.deasting)
+            y.append(position[1] + self.dnorthing)
+            x_real.append(real_position[0] + self.deasting)
+            y_real.append(real_position[1] + self.dnorthing)
+            frames.append(frame)
+            frame, position, real_position = self._next_image_position()
+    
+        return (x, y), (x_real, y_real), frames
 
 if __name__ == "__main__":
     smap = SimpleMap("./test_data/0ef581bf4a424ef1.json")
-    x, y= smap.get_route()
+    (x, y), _, _= smap.get_route()
 
     # abs_x = [abs(elem) for elem in x]
     # abs_y = [abs(elem) for elem in y]
     # print(max(abs_x), max(abs_y))
 
     import matplotlib.pyplot as plt
-    plt.axis('equal')
     plt.scatter(x, y)
+    plt.axis('equal')
     plt.show()

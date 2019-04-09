@@ -1,5 +1,6 @@
 import simple_map
 import matplotlib.pyplot as plt
+import cv2
    
 
 class ComplexMap():
@@ -17,8 +18,11 @@ class ComplexMap():
 
     def draw_map(self):
         for smap in self.complex_map:
-            x, y = smap
+            (x, y), (x_real, y_real), _ = smap
             plt.scatter(x, y, c="#3399ff")
+            # plt.scatter(x_real, y_real, c='#3399ff')
+
+        plt.axis('equal')
         plt.show()
 
 if __name__ == "__main__":
