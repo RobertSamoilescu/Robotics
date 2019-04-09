@@ -13,21 +13,23 @@ class SimpleMap():
         self.json = json
         self.frame_index = 0
 
+        self.deasting = 0
+        self.dnorthing = 0
+
         self._read_json()
         self._set_transformation(ref_globals)
 
     def _set_transformation(self, ref_globals):
         alpha = np.deg2rad(self.orientation)
         self.T = np.array([
-            [np.cos(alpha), -np.sin(alpha), 0],
-            [np.sin(alpha), np.cos(alpha), 0],
+            [np.cos(alpha), np.sin(alpha), 0],
+            [-np.sin(alpha), np.cos(alpha), 0],
             [0, 0, 1]
             ])
 
         if ref_globals:
-            # print(self.latitude, self.longitude)
-            self.T[0, 2] = self.northing - ref_globals[0]
-            self.T[1, 2] = self.easting - ref_globals[1]
+            self.dnorthing = self.northing - ref_globals[0]
+            self.deasting = self.easting - ref_globals[1]
 
     def _read_json(self):
         # get data from json
@@ -126,8 +128,8 @@ class SimpleMap():
         x = []; y = []
 
         while position.size > 0:
-            x.append(position[0])
-            y.append(position[1])
+            x.append(position[0] + self.deasting)
+            y.append(position[1] + self.dnorthing)
             frame, position = self._next_image_position()
     
             ## VISUAL        
