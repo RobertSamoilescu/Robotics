@@ -134,17 +134,17 @@ class SimpleMap():
         frames = []
 
         while position.size > 0:
-            # # VISUAL        
+            # # VISUAL
             # import matplotlib.pyplot as plt
             # plt.clf()
-            # plt.scatter(x, y)
+            # plt.scatter(x_real, y_real)
             # plt.axis('equal')
             # plt.draw()
             # plt.pause(0.001)
-
+            #
             # import cv2
             # cv2.imshow("FRAME", frame)
-            # cv2.waitKey(33)
+            # cv2.waitKey(1)
 
             x.append(position[0] + self.deasting)
             y.append(position[1] + self.dnorthing)
@@ -156,7 +156,7 @@ class SimpleMap():
         return (x, y), (x_real, y_real), frames
 
 if __name__ == "__main__":
-    smap = SimpleMap("./test_data/0ef581bf4a424ef1.json")
+    smap = SimpleMap("./test_data/1c820d64b4af4c85.json")
     (x, y), _, _= smap.get_route()
 
     # abs_x = [abs(elem) for elem in x]
