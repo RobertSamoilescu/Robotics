@@ -24,7 +24,7 @@ data_map = pickle.load(open("map_dir/map.pkl", "rb"))
 
 # initialize model
 # net = model.CAE().cuda()
-net = torch.load("./checkpoints/best_model")
+net = torch.load("./checkpoints/distribution_std10/best_model")
 
 
 def display(img, map_img, distribution, fx=2.75, fy=2.5):
@@ -34,9 +34,13 @@ def display(img, map_img, distribution, fx=2.75, fy=2.5):
     # resize distribution to map size
     distribution = cv2.resize(distribution, (map_img.shape[1], map_img.shape[0]))
 
+    # scale for visual effect
+    distribution /= distribution.max()
+    distribution = (distribution > 0.01).astype(np.float)
+
     # add dot in the map
     map_img = deepcopy(map_img)
-    map_img[:,:, 2] += 255 * distribution
+    map_img[:,:, 2] = np.clip(map_img[:, :, 2] + distribution, 0, 1)
 
     # resize map_img
     img = cv2.resize(img, None, fx=fx, fy=fy)

@@ -14,6 +14,10 @@ argparser = argparse.ArgumentParser()
 
 argparser.add_argument("--src", type=str, required=True,
                        help="source directory")
+argparser.add_argument("--project", action="store_true",
+    help="project predicted point onto the map")
+argparser.add_argument("--outliers", action="store_true",
+    help="remove outilers")
 args = argparser.parse_args()
 
 
@@ -29,7 +33,7 @@ dataloader = DataLoader(dataset, batch_size=batchsize, shuffle=True, num_workers
 data_map = pickle.load(open("map_dir/map.pkl", "rb"))
 
 # initialize model
-net = torch.load("./checkpoints/best_model")
+net = torch.load("./checkpoints/distribution_std10/best_model")
 net = net.eval()
 print(net)
 
@@ -81,6 +85,15 @@ def KLDiv():
     return ret
 
 
+def project_point(p):
+    p = p[0].cpu().numpy()
+
+    distances = np.array([np.linalg.norm(coord - p) for coord in coords])
+    index = distances.argmin()
+
+    return torch.from_numpy(coords[index]).unsqueeze(dim=0).float().cuda()
+
+
 def euclidian_distance(distribution, coords):
     # resize distribution to map size
     distribution = cv2.resize(distribution, (data_map["img"].shape[1], data_map["img"].shape[0]))
@@ -111,6 +124,10 @@ def RMSE():
         with torch.no_grad():
             Y = net(X)
 
+        # project point
+        if args.project:
+            Y = project_point(Y)
+
         # compute loss
         losses.append(euclidian_distance(Y.cpu().numpy()[0, 0], Y_gt.numpy()[0]))
 
@@ -126,10 +143,55 @@ def RMSE():
     max_KL = np.max(losses)
     min_KL = np.min(losses)
 
-    ret = dict()  
+    ret = dict() 
+    ret["losses"] = losses
     ret["mean_distance"] = np.mean(losses)
     ret["max_distance"] = np.max(losses)
     ret["min_distance"] = np.min(losses)
+    return ret
+
+
+def plot_histograms(rmse_results):
+    bins = np.arange(0, int(rmse_results["max_distance"]) + 1, 5)
+    
+    # plot distribution
+    distribution = plt.hist(rmse_results["losses"], bins, density=True)
+    plt.title("Distance distribution")
+    plt.xlabel("distance[m]")
+    plt.ylabel("fraction")
+    plt.show()
+
+    # plot cumulative distribution
+    cumulative = plt.hist(rmse_results["losses"], bins, 
+        histtype='step', density=True, cumulative=True)
+    plt.title("Cumulative distance distribution")
+    plt.xlabel("distance [m]")
+    plt.ylabel("fraction")    
+    plt.show()
+
+    ret = dict()
+    ret["distribution"] = distribution
+    ret["cumulative"] = cumulative
+
+    return ret
+
+
+def RMSE_denoise(rmse_results, threshold=50):
+    losses = np.array(rmse_results["losses"])
+    mask = losses < 50
+
+    losses = losses[mask]
+
+    mean_RMSE = np.mean(losses)
+    max_RMSE = np.max(losses)
+    min_RMSE = np.min(losses)
+
+    ret = dict()
+    ret["losses"] = losses
+    ret["mean_distance"] = np.mean(losses)
+    ret["max_distance"] = np.max(losses)
+    ret["min_distance"] = np.min(losses)
+    ret["percentage"] = np.mean(mask)
     return ret
 
 
@@ -138,10 +200,20 @@ def main():
     kl_results = KLDiv()
     pp.pprint(kl_results)
     
-
     print(" * Computing Euclidian Distance")
     rmse_results = RMSE()
     pp.pprint(rmse_results)
+
+    # plot distribution an cumulative distnaces    
+    print(" * Plot histogram of distances ")
+    plot_histograms(rmse_results)
+
+    # compute results without outliers
+    if args.outliers:
+        print(" *  Compute Euclidian Distance without outliers")
+        rmse_results = RMSE_denoise(rmse_results)
+
+        pp.pprint(rmse_results)
 
     
 if __name__ == "__main__":
