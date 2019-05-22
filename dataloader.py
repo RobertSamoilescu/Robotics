@@ -9,9 +9,14 @@ from torch.utils.data import Dataset, DataLoader
 class UPBDataset(Dataset):
     """UPB dataset"""
 
-    def __init__(self, root_dir, augmentation=True, img_size=128):
+    def __init__(self, root_dir, augmentation=True, img_size=128, test=False):
         self.root_dir = root_dir
-        self.files = [os.path.join(root_dir, file) for file in os.listdir(root_dir)]
+        
+        if test:
+            self.files = [os.path.join(root_dir, file) for file in sorted(os.listdir(root_dir), key=int)]
+        else:
+            self.files = [os.path.join(root_dir, file) for file in os.listdir(root_dir)]
+        
         self.augmentation = augmentation
         self.img_size = img_size
 
