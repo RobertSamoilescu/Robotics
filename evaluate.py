@@ -28,8 +28,7 @@ dataloader = DataLoader(dataset, batch_size=batchsize, shuffle=True, num_workers
 data_map = pickle.load(open("map_dir/map.pkl", "rb"))
 
 # initialize model
-net = torch.load("./checkpoints/best_model")
-net = net.cuda()
+net = torch.load("./checkpoints/best_model").cuda()
 net = net.eval()
 print(net)
 
@@ -54,7 +53,7 @@ def RMSE():
 
         # compute loss
         loss = criterion(Y, Y_gt)
-        losses.append(loss.item())
+        losses.append(np.sqrt(loss.item()))
 
     # plot 
     plt.bar(np.arange(len(losses)), losses, align='center', alpha=0.5)

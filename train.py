@@ -14,7 +14,7 @@ num_workers = 7
 train_dataset = UPBDataset("train", augmentation=True)
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
-validation_dataset = UPBDataset("test", augmentation=False)
+validation_dataset = UPBDataset("validation", augmentation=False)
 validation_dataloader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
 # initialize logger
